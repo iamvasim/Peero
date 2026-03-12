@@ -83,7 +83,17 @@ export function usePeerConnection() {
       return; // Already initialized
     }
 
+    // Create peer with generated code as ID
+    // Using PeerJS cloud server with proper STUN/TURN servers
     const peer = new Peer(code, {
+      config: {
+        iceServers: [
+          { urls: 'stun:stun.l.google.com:19302' },
+          { urls: 'stun:global.stun.twilio.com:3478' },
+          { urls: 'stun:stun1.l.google.com:19302' },
+          { urls: 'stun:stun2.l.google.com:19302' }
+        ]
+      },
       debug: 2,
     });
 
@@ -104,7 +114,19 @@ export function usePeerConnection() {
     peer.on('error', (err) => {
       console.error('Peer error:', err);
       setConnectionStatus('error');
-      addSystemMessage(`Error: ${err.type}`);
+      
+      // More descriptive error messages
+      if (err.type === 'peer-unavailable') {
+        addSystemMessage('Peer not found. Check the code and try again.');
+      } else if (err.type === 'network') {
+        addSystemMessage('Network error. Check your internet connection.');
+      } else if (err.type === 'server-error') {
+        addSystemMessage('Server error. Please try again later.');
+      } else if (err.type === 'unavailable-id') {
+        addSystemMessage('This code is already in use. Please refresh the page.');
+      } else {
+        addSystemMessage(`Connection error: ${err.type}`);
+      }
     });
 
     peerRef.current = peer;
