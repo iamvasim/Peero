@@ -84,14 +84,20 @@ export function usePeerConnection() {
     }
 
     // Create peer with generated code as ID
-    // Using PeerJS cloud server with proper STUN/TURN servers
+    // Using 0.peerjs.com which is more reliable
     const peer = new Peer(code, {
+      host: '0.peerjs.com',
+      secure: true,
+      port: 443,
+      path: '/',
       config: {
         iceServers: [
           { urls: 'stun:stun.l.google.com:19302' },
           { urls: 'stun:global.stun.twilio.com:3478' },
           { urls: 'stun:stun1.l.google.com:19302' },
-          { urls: 'stun:stun2.l.google.com:19302' }
+          { urls: 'stun:stun2.l.google.com:19302' },
+          { urls: 'stun:stun3.l.google.com:19302' },
+          { urls: 'stun:stun4.l.google.com:19302' }
         ]
       },
       debug: 2,
@@ -117,15 +123,27 @@ export function usePeerConnection() {
       
       // More descriptive error messages
       if (err.type === 'peer-unavailable') {
-        addSystemMessage('Peer not found. Check the code and try again.');
+        addSystemMessage('Peer not found. Make sure they entered your code correctly.');
       } else if (err.type === 'network') {
         addSystemMessage('Network error. Check your internet connection.');
       } else if (err.type === 'server-error') {
-        addSystemMessage('Server error. Please try again later.');
+        addSystemMessage('Server error. Please refresh and try again.');
       } else if (err.type === 'unavailable-id') {
         addSystemMessage('This code is already in use. Please refresh the page.');
+      } else if (err.type === 'disconnected') {
+        addSystemMessage('Disconnected from server. Refreshing...');
+        // Auto-refresh on disconnect
+        setTimeout(() => window.location.reload(), 2000);
       } else {
-        addSystemMessage(`Connection error: ${err.type}`);
+        addSystemMessage(`Connection error: ${err.type}. Try refreshing.`);
+      }
+    });
+
+    peer.on('disconnected', () => {
+      console.log('Disconnected from PeerJS server');
+      // Try to reconnect
+      if (peerRef.current && !peerRef.current.destroyed) {
+        peerRef.current.reconnect();
       }
     });
 
