@@ -110,6 +110,15 @@ export function usePeerConnection() {
 
     peer.on('connection', (conn) => {
       console.log('Incoming connection from:', conn.peer);
+      
+      // Check if this is a different peer
+      const savedRemoteCode = sessionStorage.getItem(SESSION_KEYS.REMOTE_CODE);
+      if (savedRemoteCode && savedRemoteCode !== conn.peer) {
+        // Different peer connecting - clear old messages
+        setMessages([]);
+        sessionStorage.removeItem(SESSION_KEYS.MESSAGES);
+      }
+      
       setupConnection(conn);
       setRemoteCode(conn.peer);
       sessionStorage.setItem(SESSION_KEYS.REMOTE_CODE, conn.peer);
@@ -209,6 +218,14 @@ export function usePeerConnection() {
   // Connect to peer
   const connect = useCallback((code) => {
     if (!peerRef.current) return;
+    
+    // Check if connecting to a different peer
+    const savedRemoteCode = sessionStorage.getItem(SESSION_KEYS.REMOTE_CODE);
+    if (savedRemoteCode && savedRemoteCode !== code) {
+      // Connecting to a different peer - clear old messages
+      setMessages([]);
+      sessionStorage.removeItem(SESSION_KEYS.MESSAGES);
+    }
     
     setConnectionStatus('connecting');
     addSystemMessage(`Connecting to ${code}...`);
